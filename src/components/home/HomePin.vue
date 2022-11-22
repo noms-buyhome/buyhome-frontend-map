@@ -2,6 +2,7 @@
   <div>
     <h2>왜 안나오냐 이거야
     </h2>
+    <img alt="Vue logo" src="@/assets/icon-home.png">
     <div>
       동코드 입력 : 
       <input type="text" id="dongCode" ref="dongCode" v-model.lazy="dongCode" />
@@ -10,20 +11,23 @@
       <p>{{address}}</p>
       <!-- <input type="text" id="address" ref="address" v-model.lazy="address" /> -->
     </div>
+    
     <div>
       <input type="text" id="lat" ref="lat" v-model.lazy="lat" />
       <input type="text" id="lng" ref="lng" v-model.lazy="lng" />
       <button @click="updateLatLng()">중앙좌표 출력, 동코드 반환</button>
     </div>
     <div class="button-group">
-      <button @click="displayMarker(markerPositions1)">marker set 1</button>
-      <button @click="displayMarker(markerPositions2)">marker set 2</button>
-      <button @click="displayMarker(markerPositions3)">marker set 2</button>
-      <button @click="displayMarker([])">marker set 3 (empty)</button>
+      <button @click="displayMarker([])">마커 지우기</button>
       <button @click="getResults(1111018300)">동코드 배열 콘솔 출력하기</button>
       <button @click="displayMarker(dongLatLng)">드뎌.. 맵에 찍기!</button>
       <button @click="displayInfoWindow">infowindow</button>
       <button @click="currentLocationSearch()">현재위치 검색</button>
+
+
+      <button @click="getHomePositions()">집</button>
+      <button @click="getEduPositions()">학군</button>
+      
     </div>
     <div id="map" @mouseup="updateLatLng()"  ></div> <!-- @mouseover="hello()" -->
     <!-- {{console.log('이거슨 그냥 띄워보는거시다')}} -->
@@ -32,6 +36,7 @@
 
 <script>
 import axios from "axios";
+import http from "@/api/http"
 import {mapActions, mapGetters} from "vuex";
 
 export default {
@@ -53,8 +58,13 @@ export default {
         [37.49646391248451, 127.02675574250912],
       ],
       markerPositions3: [],
-      markerPositions4: [], //여기에 동코드로 검색한 주택정보 불러오자
+      homePositions: [], //여기에 동코드로 검색한 주택정보 불러오자
+      transportPositions: [], //주차장, 주유소, 지하철역
+      eduPositions: [], //유치원, 학교, 학원
+      mediPositions: [], //병원, 약국
+      foodPositions: [], //음식점, 카페
       markers: [],
+      eduMarkers: [],
       infowindow: null,
       lat:"",
       lng:"",
@@ -85,56 +95,108 @@ export default {
   methods: {
     ...mapActions(["getResults"]),
 
+    
 
-    hello() { //마커에 마우스 올렸을 때 인포윈도우 출력
-      // 마커에 커서가 오버됐을 때 마커 위에 표시할 인포윈도우를 생성합니다
-      var mapContainer = document.getElementById('map'), // 지도를 표시할 div 
-      mapOption = { 
-          center: new kakao.maps.LatLng(33.450701, 126.570667), // 지도의 중심좌표
-          level: 3 // 지도의 확대 레벨
-      };
+    //동코드 기준으로 [학군] 리스트 불러오기
+    getEduPositions() {
+      //37.501055511276206, 127.03937835966009
+      axios.get(
+          `https://dapi.kakao.com/v2/local/search/category.json?category_group_code=SC4`, //x=37.501055511276206&y=127.03937835966009&radius=2000&
+          { headers: { Authorization: `KakaoAK c46f27eaebc3444220e50470b5d06e52` } }
+      ).then((result) => {
+        console.log('학군 정보 출력');
+        console.log(result);
+        console.log(result.data);
+        console.log(result.data.documents);
+        console.log(result.data.documents[1]);
+        console.log(result.data.documents[1].x);
+        console.log(result.data.documents[1].y);
 
-      var map = new kakao.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
-
-      // 마커를 표시할 위치입니다 
-      var position =  new kakao.maps.LatLng(33.450701, 126.570667);
-
-      // 마커를 생성합니다
-      var marker = new kakao.maps.Marker({
-        position: position
+        var list = [];
+        for(var i=0; i<result.data.documents.length; i++){
+          list.push([result.data.documents[i].y,result.data.documents[i].x]);
+        // console.log(result.data.documents[i].x);
+        // console.log(result.data.documents[i].y);
+        }
+        console.log(list);
+        this.displayEduMarker(list);
+      }).catch(({ response }) => {
+          alert(response.data);
+          console.log('오류 떴다잉..');
+          console.log(response);
       });
-
-      // 마커를 지도에 표시합니다.
-      marker.setMap(map);
-
-      // 마커에 커서가 오버됐을 때 마커 위에 표시할 인포윈도우를 생성합니다
-      var iwContent = '<div style="padding:5px;">Hello World!</div>'; // 인포윈도우에 표출될 내용으로 HTML 문자열이나 document element가 가능합니다
-
-      // 인포윈도우를 생성합니다
-      var infowindow = new kakao.maps.InfoWindow({
-          content : iwContent
-      });
-
-      // 마커에 마우스오버 이벤트를 등록합니다
-      kakao.maps.event.addListener(marker, 'mouseover', function() {
-        // 마커에 마우스오버 이벤트가 발생하면 인포윈도우를 마커위에 표시합니다
-          infowindow.open(map, marker);
-          console.log('마우스 올라갔다');
-      });
-
-      // 마커에 마우스아웃 이벤트를 등록합니다
-      kakao.maps.event.addListener(marker, 'mouseout', function() {
-          // 마커에 마우스아웃 이벤트가 발생하면 인포윈도우를 제거합니다
-          infowindow.close();
-          console.log('마우스 내렸다');
-      });
-      console.log('얼마나 출력됨?');
     },
 
 
 
 
-    async currentLocationSearch() {
+
+    displayEduMarker(markerPositions) {
+      console.log('displayEduMarker() 호출');
+      console.log(markerPositions);
+      if (this.eduMarkers.length > 0) {
+        this.eduMarkers.forEach((marker) => marker.setMap(null));
+      }
+
+      const positions = markerPositions.map(
+        (position) => new kakao.maps.LatLng(...position)
+      );
+
+      console.log('.......positions ');
+      console.log(positions); ///////////////////////////////////////////////////////////////////////////////////////////////
+      if(markerPositions.length > 0){
+        console.log(markerPositions[0]);
+        console.log(markerPositions[0][0]);
+        console.log('positions의 길이 : ',positions.length)
+      }
+
+      if (positions.length > 0) {
+        console.log('마커 출력해보기 : ',this.eduMarkers);
+        console.log(positions);
+        console.log(positions[0]);
+
+        // var imageSrc = require("@/assets/icon-home.png"), // 마커이미지의 주소입니다    
+        //   imageSize = new kakao.maps.Size(30, 33), // 마커이미지의 크기입니다
+        //   imageOption = {offset: new kakao.maps.Point(27, 69)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+      
+        //마커의 이미지정보를 가지고 있는 마커이미지를 생성합니다
+        // var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+        for(var i=0; i<positions.length; i++){
+          var marker = new kakao.maps.Marker({
+                              map: this.map,
+                              position : positions[i],
+                              //image: markerImage // 마커이미지 설정 
+                            });
+          this.eduMarkers.push(marker);
+        }
+      }
+    },
+
+
+
+
+    //동코드 기준으로 [집] 리스트 불러오기
+    getHomePositions() {
+      console.log('getHomePositions() 호출');
+      // console.log('[actions]................................getResults 조회 조건:', payload);
+      http.get(`home/${this.dongCode}`)
+        .then(({ data }) => {
+          console.log('[actions]................................getHomePositions:', data);
+          this.homePositions = data;
+          if (data.length == 0) {
+            alert('해당지역엔 매물이 없어유.. T^T;;');
+          }
+        })
+        .catch(({ response }) => {
+          alert(response.data);
+        });
+    },
+
+
+
+
+    currentLocationSearch() {
       // console.log('!검색한 현재 주소 : ',this.address);
       // console.log('!검색한 동코드 : ',this.dongCode);
       // console.log('!현재 좌표들 : ',this.dongLatLng);
@@ -209,6 +271,8 @@ export default {
 
     displayMarker(markerPositions) {
       console.log('displayMarker() 호출');
+
+      console.log(markerPositions);
       // console.log('위경도 출력하면 어떻게 나올까? ',markerPositions);
       //console.log('이거 출력 되는거임?? ',this.dongLatLng[0]);
       // this.markers=[];
@@ -220,16 +284,56 @@ export default {
         (position) => new kakao.maps.LatLng(...position)
       );
 
+      // console.log('map으로 출력하기');
+      // console.log('map으로 출력하기');
+      // console.log('map으로 출력하기');
+      // console.log('map으로 출력하기');
+      // console.log('map으로 출력하기');
+      // console.log('map으로 출력하기');
+      // console.log('map으로 출력하기');
+      // console.log('map으로 출력하기');
+      // console.log('map으로 출력하기');
+      // markerPositions.map(
+      //   (position) => console.log(position)
+      // );
+
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // console.log('뽀문으로 출력하기');
+      // var positions = [];
+      // for(let i=0; i<markerPositions.length; i++) {
+      //   console.log(markerPositions[i]);
+      //   var tmp = new kakao.maps.LatLng(markerPositions[i]);
+      //   positions.push(tmp);
+      // }
+      // console.log('.......tmpPositions ');
+      // console.log(tmpPositions);
+      console.log('.......positions ');
+      console.log(positions); ///////////////////////////////////////////////////////////////////////////////////////////////
+      if(markerPositions.length > 0){
+        console.log(markerPositions[0]);
+        console.log(markerPositions[0][0]);
+        console.log('positions의 길이 : ',positions.length)
+      }
+
       if (positions.length > 0) {
         console.log('마커 출력해보기 : ',this.markers);
         console.log(positions);
         console.log(positions[0]);
 
-        var imageSrc = 'C:/SSAFY/ProjectFinal-buyhome/buyhome-frontend-map/src/assets/logo.png', // 마커이미지의 주소입니다    
-          imageSize = new kakao.maps.Size(40, 44), // 마커이미지의 크기입니다
+        var imageSrc = require("@/assets/icon-home.png"), // 마커이미지의 주소입니다    
+          imageSize = new kakao.maps.Size(30, 33), // 마커이미지의 크기입니다
           imageOption = {offset: new kakao.maps.Point(27, 69)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
       
-        // 마커의 이미지정보를 가지고 있는 마커이미지를 생성합니다
+        //마커의 이미지정보를 가지고 있는 마커이미지를 생성합니다
         var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
     
 
@@ -243,31 +347,31 @@ export default {
           
           //윈도우 만들어주기
           // 마커에 커서가 오버됐을 때 마커 위에 표시할 인포윈도우를 생성합니다
-          var iwContent = '<div style="padding:5px;">Hello World!</div>'; // 인포윈도우에 표출될 내용으로 HTML 문자열이나 document element가 가능합니다
+          // var iwContent = '<div style="padding:5px;">Hello World!</div>'; // 인포윈도우에 표출될 내용으로 HTML 문자열이나 document element가 가능합니다
 
-          // 인포윈도우를 생성합니다
-          var infowindow = new kakao.maps.InfoWindow({
-              content : iwContent
-          });
+          // // 인포윈도우를 생성합니다
+          // var infowindow = new kakao.maps.InfoWindow({
+          //     content : iwContent
+          // });
 
-          // 마커에 마우스오버 이벤트를 등록합니다
-          kakao.maps.event.addListener(this.markers[i], 'mouseover', function() {
-            // 마커에 마우스오버 이벤트가 발생하면 인포윈도우를 마커위에 표시합니다
-              infowindow.open(this.map, this.markers[i]);
-              console.log('마우스 올라갔다', this.markers[i].getPosition());
-          });
+          // // 마커에 마우스오버 이벤트를 등록합니다
+          // kakao.maps.event.addListener(this.markers[i], 'mouseover', function() {
+          //   // 마커에 마우스오버 이벤트가 발생하면 인포윈도우를 마커위에 표시합니다
+          //     infowindow.open(this.map, this.markers[i]);
+          //     // console.log('마우스 올라갔다', this.markers[i].getPosition());
+          // });
 
-          // 마커에 마우스아웃 이벤트를 등록합니다
-          kakao.maps.event.addListener(this.markers[i], 'mouseout', function() {
-              // 마커에 마우스아웃 이벤트가 발생하면 인포윈도우를 제거합니다
-              infowindow.close();
-              console.log('마우스 내렸다', this.markers[i].getPosition());
-          });
+          // // 마커에 마우스아웃 이벤트를 등록합니다
+          // kakao.maps.event.addListener(this.markers[i], 'mouseout', function() {
+          //     // 마커에 마우스아웃 이벤트가 발생하면 인포윈도우를 제거합니다
+          //     infowindow.close();
+          //     // console.log('마우스 내렸다', this.markers[i].getPosition());
+          // });
 
           // console.log('선언할때이다', marker);
-          console.log('마커두개 같은거 나오냐? > 1',marker.getPosition());
-          console.log('마커두개 같은거 나오냐? > 2',this.markers[i].getPosition());
-          console.log(marker.getPosition() === this.markers[i].getPosition());
+          // console.log('마커두개 같은거 나오냐? > 1',marker.getPosition());
+          // console.log('마커두개 같은거 나오냐? > 2',this.markers[i].getPosition());
+          // console.log(marker.getPosition() === this.markers[i].getPosition());
         }
         // this.markers = positions.map(
         //   (position) =>
