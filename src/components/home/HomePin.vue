@@ -25,11 +25,11 @@
       <button @click="currentLocationSearch()">현재위치 검색</button>
 
 
-      <button @click="getHomePositions()">집</button>
-      <button @click="eduToggle()">학군</button>
-      <button @click="transportToggle()">교통</button>
-      <button @click="mediToggle()">병원</button>
-      <button @click="foodToggle()">식당</button>
+      <button @click="getHomePositions()" >집</button>
+      <button @click="eduToggle()" :class="{switchOn:!eduSwitch}">학군</button>
+      <button @click="transportToggle()" :class="{switchOn:!transportSwitch}">교통</button>
+      <button @click="mediToggle()" :class="{switchOn:!mediSwitch}">병원</button>
+      <button @click="foodToggle()" :class="{switchOn:!foodSwitch}">식당</button>
       
     </div>
     <div id="map" @mouseup="updateLatLng()"  ></div> <!-- @mouseover="hello()" -->
@@ -797,6 +797,10 @@ export default {
 #map {
   width: 100%;
   height: 600px;
+}
+
+.switchOn {
+  background: red;
 }
 
 .button-group {
