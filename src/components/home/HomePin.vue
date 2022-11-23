@@ -26,7 +26,10 @@
 
 
       <button @click="getHomePositions()">집</button>
-      <button @click="getEduPositions()">학군</button>
+      <button @click="eduToggle()">학군</button>
+      <button @click="transportToggle()">교통</button>
+      <button @click="mediToggle()">병원</button>
+      <button @click="foodToggle()">식당</button>
       
     </div>
     <div id="map" @mouseup="updateLatLng()"  ></div> <!-- @mouseover="hello()" -->
@@ -64,12 +67,19 @@ export default {
       mediPositions: [], //병원, 약국
       foodPositions: [], //음식점, 카페
       markers: [],
+      transportMarkers: [],
       eduMarkers: [],
+      mediMarkers: [],
+      foodMarkers: [],
+      transportSwitch: true,
+      eduSwitch: true,
+      mediSwitch: true,
+      foodSwitch: true,
       infowindow: null,
-      lat:"",
-      lng:"",
-      dongCode: "",
-      address: "",
+      lat:37.501055511276206,
+      lng:127.03937835966009,
+      dongCode: 1168010100,
+      address: "서울특별시 강남구 역삼동",
       
     };
   },
@@ -95,13 +105,310 @@ export default {
   methods: {
     ...mapActions(["getResults"]),
 
-    
+
+
+
+    //학군 버튼 눌렀을 때마다 마커 표시하고 끄는 기능
+    foodToggle() {
+      this.foodSwitch = !this.foodSwitch;
+      console.log(this.foodSwitch);
+      if(this.foodSwitch){
+        this.displayFoodMarker([]);
+      }else {
+        this.getFoodPositions();
+      }
+    },
+
+
+
+
+    //동코드 기준으로 [학군] 리스트 불러오기
+    getFoodPositions() {
+      //37.501055511276206, 127.03937835966009
+      axios.get(
+          `https://dapi.kakao.com/v2/local/search/category.json?x=${this.lng}&y=${this.lat}&radius=1000&category_group_code=FD6`, //x=37.501055511276206&y=127.03937835966009&radius=2000&
+          { headers: { Authorization: `KakaoAK c46f27eaebc3444220e50470b5d06e52` } }
+      ).then((result) => {
+        console.log('교통 정보 출력');
+        console.log(result);
+        console.log(result.data);
+        console.log(result.data.documents);
+        console.log(result.data.documents[1]);
+        console.log(result.data.documents[1].x);
+        console.log(result.data.documents[1].y);
+
+        var list = [];
+        for(var i=0; i<result.data.documents.length; i++){
+          list.push([result.data.documents[i].y,result.data.documents[i].x]);
+        // console.log(result.data.documents[i].x);
+        // console.log(result.data.documents[i].y);
+        }
+        console.log(list);
+        this.displayFoodMarker(list);
+      }).catch(({ response }) => {
+          alert(response.data);
+          console.log('오류 떴다잉..');
+          console.log(response);
+      });
+    },
+
+
+
+
+
+    displayFoodMarker(markerPositions) {
+      console.log('displayFoodMarker() 호출');
+      console.log(markerPositions);
+      if (this.foodMarkers.length > 0) {
+        this.foodMarkers.forEach((marker) => marker.setMap(null));
+      }
+
+      const positions = markerPositions.map(
+        (position) => new kakao.maps.LatLng(...position)
+      );
+
+      console.log('.......positions ');
+      console.log(positions); ///////////////////////////////////////////////////////////////////////////////////////////////
+      if(markerPositions.length > 0){
+        console.log(markerPositions[0]);
+        console.log(markerPositions[0][0]);
+        console.log('positions의 길이 : ',positions.length)
+      }
+
+      if (positions.length > 0) {
+        console.log('마커 출력해보기 : ',this.foodMarkers);
+        console.log(positions);
+        console.log(positions[0]);
+
+        var imageSrc = require("@/assets/icon-food.png"); // 마커이미지의 주소입니다
+
+        var imageSize = new kakao.maps.Size(33, 37), // 마커이미지의 크기입니다
+          imageOption = {offset: new kakao.maps.Point(0,0)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+      
+        //마커의 이미지정보를 가지고 있는 마커이미지를 생성합니다
+        var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+        for(var i=0; i<positions.length; i++){
+          var marker = new kakao.maps.Marker({
+                              map: this.map,
+                              position : positions[i],
+                              image: markerImage // 마커이미지 설정 
+                            });
+          this.foodMarkers.push(marker);
+        }
+      }
+    },
+
+
+
+
+    //학군 버튼 눌렀을 때마다 마커 표시하고 끄는 기능
+    mediToggle() {
+      this.mediSwitch = !this.mediSwitch;
+      console.log(this.mediSwitch);
+      if(this.mediSwitch){
+        this.displayMediMarker([]);
+      }else {
+        this.getMediPositions();
+      }
+    },
+
+
+
+
+    //동코드 기준으로 [학군] 리스트 불러오기
+    getMediPositions() {
+      //37.501055511276206, 127.03937835966009
+      axios.get(
+          `https://dapi.kakao.com/v2/local/search/category.json?x=${this.lng}&y=${this.lat}&radius=1000&category_group_code=HP8`, //x=37.501055511276206&y=127.03937835966009&radius=2000&
+          { headers: { Authorization: `KakaoAK c46f27eaebc3444220e50470b5d06e52` } }
+      ).then((result) => {
+        console.log('교통 정보 출력');
+        console.log(result);
+        console.log(result.data);
+        console.log(result.data.documents);
+        console.log(result.data.documents[1]);
+        console.log(result.data.documents[1].x);
+        console.log(result.data.documents[1].y);
+
+        var list = [];
+        for(var i=0; i<result.data.documents.length; i++){
+          list.push([result.data.documents[i].y,result.data.documents[i].x]);
+        // console.log(result.data.documents[i].x);
+        // console.log(result.data.documents[i].y);
+        }
+        console.log(list);
+        this.displayMediMarker(list);
+      }).catch(({ response }) => {
+          alert(response.data);
+          console.log('오류 떴다잉..');
+          console.log(response);
+      });
+    },
+
+
+
+
+
+    displayMediMarker(markerPositions) {
+      console.log('displayMediMarker() 호출');
+      console.log(markerPositions);
+      if (this.mediMarkers.length > 0) {
+        this.mediMarkers.forEach((marker) => marker.setMap(null));
+      }
+
+      const positions = markerPositions.map(
+        (position) => new kakao.maps.LatLng(...position)
+      );
+
+      console.log('.......positions ');
+      console.log(positions); ///////////////////////////////////////////////////////////////////////////////////////////////
+      if(markerPositions.length > 0){
+        console.log(markerPositions[0]);
+        console.log(markerPositions[0][0]);
+        console.log('positions의 길이 : ',positions.length)
+      }
+
+      if (positions.length > 0) {
+        console.log('마커 출력해보기 : ',this.mediMarkers);
+        console.log(positions);
+        console.log(positions[0]);
+
+        var imageSrc = require("@/assets/icon-medi.png"); // 마커이미지의 주소입니다
+
+        var imageSize = new kakao.maps.Size(33, 37), // 마커이미지의 크기입니다
+          imageOption = {offset: new kakao.maps.Point(0,0)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+      
+        //마커의 이미지정보를 가지고 있는 마커이미지를 생성합니다
+        var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+        for(var i=0; i<positions.length; i++){
+          var marker = new kakao.maps.Marker({
+                              map: this.map,
+                              position : positions[i],
+                              image: markerImage // 마커이미지 설정 
+                            });
+          this.mediMarkers.push(marker);
+        }
+      }
+    },
+
+
+
+
+    //학군 버튼 눌렀을 때마다 마커 표시하고 끄는 기능
+    transportToggle() {
+      this.transportSwitch = !this.transportSwitch;
+      console.log(this.transportSwitch);
+      if(this.transportSwitch){
+        this.displayTransportMarker([]);
+      }else {
+        this.getTransportPositions();
+      }
+    },
+
+
+
+
+    //동코드 기준으로 [학군] 리스트 불러오기
+    getTransportPositions() {
+      //37.501055511276206, 127.03937835966009
+      axios.get(
+          `https://dapi.kakao.com/v2/local/search/category.json?x=${this.lng}&y=${this.lat}&radius=1000&category_group_code=SW8`, //x=37.501055511276206&y=127.03937835966009&radius=2000&
+          { headers: { Authorization: `KakaoAK c46f27eaebc3444220e50470b5d06e52` } }
+      ).then((result) => {
+        console.log('교통 정보 출력');
+        console.log(result);
+        console.log(result.data);
+        console.log(result.data.documents);
+        console.log(result.data.documents[1]);
+        console.log(result.data.documents[1].x);
+        console.log(result.data.documents[1].y);
+
+        var list = [];
+        for(var i=0; i<result.data.documents.length; i++){
+          list.push([result.data.documents[i].y,result.data.documents[i].x]);
+        // console.log(result.data.documents[i].x);
+        // console.log(result.data.documents[i].y);
+        }
+        console.log(list);
+        this.displayTransportMarker(list);
+      }).catch(({ response }) => {
+          alert(response.data);
+          console.log('오류 떴다잉..');
+          console.log(response);
+      });
+    },
+
+
+
+
+
+    displayTransportMarker(markerPositions) {
+      console.log('displayTransportMarker() 호출');
+      console.log(markerPositions);
+      if (this.transportMarkers.length > 0) {
+        this.transportMarkers.forEach((marker) => marker.setMap(null));
+      }
+
+      const positions = markerPositions.map(
+        (position) => new kakao.maps.LatLng(...position)
+      );
+
+      console.log('.......positions ');
+      console.log(positions); ///////////////////////////////////////////////////////////////////////////////////////////////
+      if(markerPositions.length > 0){
+        console.log(markerPositions[0]);
+        console.log(markerPositions[0][0]);
+        console.log('positions의 길이 : ',positions.length)
+      }
+
+      if (positions.length > 0) {
+        console.log('마커 출력해보기 : ',this.transportMarkers);
+        console.log(positions);
+        console.log(positions[0]);
+
+        var imageSrc = require("@/assets/icon-transport.png"); // 마커이미지의 주소입니다
+
+        var imageSize = new kakao.maps.Size(40, 37), // 마커이미지의 크기입니다
+          imageOption = {offset: new kakao.maps.Point(0,0)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+      
+        //마커의 이미지정보를 가지고 있는 마커이미지를 생성합니다
+        var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+        for(var i=0; i<positions.length; i++){
+          var marker = new kakao.maps.Marker({
+                              map: this.map,
+                              position : positions[i],
+                              image: markerImage // 마커이미지 설정 
+                            });
+          this.transportMarkers.push(marker);
+        }
+      }
+    },
+
+
+
+
+    //학군 버튼 눌렀을 때마다 마커 표시하고 끄는 기능
+    eduToggle() {
+      this.eduSwitch = !this.eduSwitch;
+      console.log(this.eduSwitch);
+      if(this.eduSwitch){
+        this.displayEduMarker([]);
+      }else {
+        this.getEduPositions();
+      }
+    },
+
+
+
 
     //동코드 기준으로 [학군] 리스트 불러오기
     getEduPositions() {
       //37.501055511276206, 127.03937835966009
       axios.get(
-          `https://dapi.kakao.com/v2/local/search/category.json?category_group_code=SC4`, //x=37.501055511276206&y=127.03937835966009&radius=2000&
+          `https://dapi.kakao.com/v2/local/search/category.json?x=${this.lng}&y=${this.lat}&radius=1000&category_group_code=SC4`, //x=37.501055511276206&y=127.03937835966009&radius=2000&
           { headers: { Authorization: `KakaoAK c46f27eaebc3444220e50470b5d06e52` } }
       ).then((result) => {
         console.log('학군 정보 출력');
@@ -155,18 +462,19 @@ export default {
         console.log(positions);
         console.log(positions[0]);
 
-        // var imageSrc = require("@/assets/icon-home.png"), // 마커이미지의 주소입니다    
-        //   imageSize = new kakao.maps.Size(30, 33), // 마커이미지의 크기입니다
-        //   imageOption = {offset: new kakao.maps.Point(27, 69)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+        var imageSrc = require("@/assets/icon-edu.png"); // 마커이미지의 주소입니다
+
+        var imageSize = new kakao.maps.Size(33, 37), // 마커이미지의 크기입니다
+          imageOption = {offset: new kakao.maps.Point(0,0)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
       
         //마커의 이미지정보를 가지고 있는 마커이미지를 생성합니다
-        // var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+        var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
 
         for(var i=0; i<positions.length; i++){
           var marker = new kakao.maps.Marker({
                               map: this.map,
                               position : positions[i],
-                              //image: markerImage // 마커이미지 설정 
+                              image: markerImage // 마커이미지 설정 
                             });
           this.eduMarkers.push(marker);
         }
@@ -331,7 +639,7 @@ export default {
 
         var imageSrc = require("@/assets/icon-home.png"), // 마커이미지의 주소입니다    
           imageSize = new kakao.maps.Size(30, 33), // 마커이미지의 크기입니다
-          imageOption = {offset: new kakao.maps.Point(27, 69)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+          imageOption = {offset: new kakao.maps.Point(0,0)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
       
         //마커의 이미지정보를 가지고 있는 마커이미지를 생성합니다
         var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
